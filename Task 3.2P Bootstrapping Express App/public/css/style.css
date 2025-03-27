@@ -1,0 +1,24 @@
+.navbar-size {
+  padding: 10px;
+}
+
+.user-image-size {
+  height: 50px;
+}
+
+.main-body {
+  margin-top: 20px;
+}
+
+.click-me-button {
+  margin-top: 20px;
+}
+
+.materialboxed-image {
+  width: 50%;
+  height: auto;
+}
+
+.card {
+  margin-top: 20px;
+}
