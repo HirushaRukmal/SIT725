@@ -1,69 +1,65 @@
 const express = require("express");
-const cors = require("cors");
-const MongoClient = require("mongodb").MongoClient;
-
 const app = express();
-const port = 3000;
+const port = process.env.port || 3004;
+const mongoose = require("mongoose");
 
-app.use(cors());
+// Middleware
 app.use(express.static(__dirname + "/public"));
 app.use(express.json());
-app.use(express.urlencoded({ extends: false }));
+app.use(express.urlencoded({ extended: false }));
 
-const MONGO_URI =
-  "mongodb+srv://kema94:nxtadmin12345@cluster1.aolkr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1";
-
-const client = new MongoClient(MONGO_URI, { useNewUrlParser: true });
-
-let projectCollection;
-
-const createCollection = (collectionName) => {
-  client.connect((err, db) => {
-    projectCollection = client.db().collection(collectionName);
-    if (!err) {
-      console.log("MDB Connected");
-    } else {
-      console.log("MDB Error: ", err);
-      process.exit(1);
-    }
-  });
-};
-
-const insertCards = (card, callback) => {
-  projectCollection.insert(card, callback);
-};
-
-const getCards = (callback) => {
-  projectCollection.find({}).toArray(callback);
-};
-
-app.get("/api/cards", (req, res) => {
-  //res.json({ statusCode: 200, message: "Success" });
-  getCards((err, result) => {
-    if (err) {
-      res.json({ status: 400, message: "Failed to fetch cards" });
-    } else {
-      res.json({ statusCode: 200, data: result, message: "Success" });
-    }
-  });
+// Connect to MongoDB
+mongoose.connect("mongodb://localhost:27017/myprojectDB", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-app.post("/api/cards", (req, res) => {
-  let newCard = req.body;
-  insertCards(newCard, (err, result) => {
-    if (err) {
-      res.json({ status: 400, message: "Failed to add card" });
-    } else {
-      res.json({
-        status: 201,
-        message: "Successfully created card",
-        data: result,
-      });
-    }
-  });
+mongoose.connection.on("connected", () => {
+  console.log("✅ Connected to MongoDB");
 });
 
+// Define schema and model
+const ProjectSchema = new mongoose.Schema({
+  title: String,
+  image: String,
+  link: String,
+  description: String,
+});
+
+const Project = mongoose.model("Project", ProjectSchema);
+
+// REST API route to get all projects
+app.get("/api/projects", async (req, res) => {
+  try {
+    const projects = await Project.find({});
+    res.json({ statusCode: 200, data: projects, message: "Success" });
+  } catch (err) {
+    res.status(500).json({ statusCode: 500, message: "Failed", error: err });
+  }
+});
+
+// REST API route to add a new project
+app.post("/api/projects", async (req, res) => {
+  try {
+    const project = new Project(req.body);
+    const saved = await project.save();
+    res.status(201).json({ statusCode: 201, data: saved, message: "Project saved successfully!" });
+  } catch (err) {
+    res.status(400).json({ statusCode: 400, message: "Error saving project", error: err });
+  }
+});
+
+// Add sample project
+const sampleProject2 = new Project({
+  title: "Kitten 3",
+  image: "images/kitten3.jpg",
+  link: "https://example.com/kitten3",
+  description: "Demo description about kitten 3",
+});
+
+sampleProject2.save().then(() => console.log("🐱 Sample project saved!"));
+
+// Start server
 app.listen(port, () => {
-  console.log(`App connected to http://localhost:${port}`);
-  createCollection("dogs");
+  console.log(`🚀 App listening on http://localhost:${port}`);
 });
